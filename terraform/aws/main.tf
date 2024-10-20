@@ -4,6 +4,7 @@ provider "aws" {
     secret_key = var.aws_secret_access_key
 }
 
+
 module "myapp-vpc" {
     source = "terraform-aws-modules/vpc/aws"
     version = "5.1.1"
