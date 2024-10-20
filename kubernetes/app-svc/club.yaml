@@ -1,0 +1,61 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: club
+  namespace: default
+  labels:
+    app: club
+  annotations:
+    ingress.kubernetes.io/service-upstream: "true"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: club
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: club
+  namespace: default
+automountServiceAccountToken: true
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: club
+  namespace: default
+spec:
+  protocol: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: club
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: club
+      app: club
+  template:
+    metadata:
+      labels:
+        service: club
+        app: club
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+        'consul.hashicorp.com/service-meta-version': 'v1'
+    spec:
+      serviceAccountName: club
+      containers:
+        - name: club
+          image: supanuttangsin/club-svc:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+---

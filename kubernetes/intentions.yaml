@@ -1,0 +1,22 @@
+# ---
+# apiVersion: consul.hashicorp.com/v1alpha1
+# kind: ServiceIntentions
+# metadata:
+#   name: app-b-to-app-a
+# spec:
+#   destination:
+#     name: app-a
+#   sources:
+#     - name: app-b
+#       action: allow
+# ---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: all
+spec:
+  destination:
+    name: "*"
+  sources:
+    - name: "*"
+      action: allow

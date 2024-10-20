@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kong-config
+data:
+  KONG_PG_DATABASE: "<<your_kong_pg_database>>"
+  KONG_PG_HOST: "<<your_kong_pg_host>>"
+  KONG_PG_USER: "<<your_kong_pg_user>>"
+  KONG_PG_PASSWORD: "<<your_kong_pg_password>>"

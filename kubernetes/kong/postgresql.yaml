@@ -1,0 +1,83 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-database
+spec:
+  type: LoadBalancer
+  ports:
+  - protocol: TCP
+    port: 5432
+    targetPort: 5432
+  selector:
+    app: kong-database
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kong-database
+automountServiceAccountToken: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kong-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: kong-database
+      app: kong-database
+  template:
+    metadata:
+      labels:
+        service: kong-database
+        app: kong-database
+      annotations:
+        consul.hashicorp.com/connect-inject: 'true'
+        consul.hashicorp.com/transparent-proxy: 'false'
+    spec:
+      serviceAccountName: kong-database
+      containers:
+      - name: kong-database
+        image: postgres:16.2
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: kong-config
+              key: KONG_PG_DATABASE
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: kong-config
+              key: KONG_PG_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: kong-config
+              key: KONG_PG_PASSWORD
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: kong-data
+          mountPath: /var/lib/postgresql/data/pgdata
+        # readinessProbe:
+        #   exec:
+        #     command: ["pg_isready", "-d", "kong", "-U", "kong"]
+        #   initialDelaySeconds: 30
+        #   periodSeconds: 30
+      volumes:
+      - name: kong-data
+        persistentVolumeClaim:
+          claimName: kong-data-claim
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: kong-database
+spec:
+  protocol: http

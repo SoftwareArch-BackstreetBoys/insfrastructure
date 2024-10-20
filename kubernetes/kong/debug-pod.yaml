@@ -1,0 +1,46 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: debug
+  namespace: default
+  labels:
+    app: debug
+spec:
+  type: ClusterIP
+  ports:
+    - port: 22
+      targetPort: 22
+      protocol: TCP
+  selector:
+    app: debug
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: debug
+automountServiceAccountToken: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: debug
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: debug
+      app: debug
+  template:
+    metadata:
+      labels:
+        service: debug
+        app: debug
+      annotations:
+        consul.hashicorp.com/connect-inject: 'true'
+    spec:
+      serviceAccountName: debug
+      containers:
+      - name: debug
+        image: tutum/dnsutils:latest
+        
