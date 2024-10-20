@@ -1,25 +1,31 @@
 global:
-  image: "hashicorp/consul:1.14.0"
-  peering:
-    enabled: true
+  enabled: true
+  name: consul
+  image: "hashicorp/consul:1.19.2"
+  acls:
+    manageSystemACLs: true
   tls:
     enabled: true
+    enableAutoEncrypt: true
+    verify: true
 
 server:
+  enabled: true
   replicas: 1
   bootstrapExpect: 1
   extraConfig: |
     {
-      "log_level": "TRACE"
+      "log_level": "DEBUG"
     }
 
-connectInject:
+client:
   enabled: true
-  default: true
 
-meshGateway:
+connectInject:
+  transparentProxy:
+    defaultEnabled: true
   enabled: true
-  replicas: 1
+  default: true 
 
 controller:
   enabled: true
@@ -29,3 +35,7 @@ ui:
   service:
     enabled: true
     type: LoadBalancer
+
+dns:
+  enabled: true
+  proxy: true
