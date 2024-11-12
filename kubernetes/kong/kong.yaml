@@ -3,6 +3,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: kong
+  namespace: service
 spec:
   type: LoadBalancer
   ports:
@@ -21,6 +22,9 @@ spec:
   - name: gui
     port: 8002
     targetPort: 8002
+  - name: status
+    port: 8100
+    targetPort: 8100
   selector:
     app: kong
 ---
@@ -28,12 +32,14 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: kong
+  namespace: service
 automountServiceAccountToken: true
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kong
+  namespace: service
 spec:
   replicas: 1
   selector:
@@ -48,7 +54,7 @@ spec:
       annotations:
         consul.hashicorp.com/connect-inject: 'true'
         consul.hashicorp.com/transparent-proxy: 'false'
-        consul.hashicorp.com/connect-service-upstreams: 'kong-database:5432,app-a:3000,club:8080'
+        consul.hashicorp.com/connect-service-upstreams: 'app-a:3000,club:8080,user:5000,event-client:6001'
     spec:
       serviceAccountName: kong
       containers:
@@ -78,53 +84,62 @@ spec:
               name: kong-config
               key: KONG_PG_PASSWORD
         - name: KONG_ADMIN_ACCESS_LOG
-          value: "/dev/stdout"
+          value: 
         - name: KONG_ADMIN_ERROR_LOG
-          value: "/dev/stderr"
+          value: 
         - name: KONG_PROXY_LISTEN
-          value: "0.0.0.0:8000, 0.0.0.0:8443 ssl"
+          value: 
         - name: KONG_ADMIN_LISTEN
-          value: "0.0.0.0:8001, 0.0.0.0:8444 ssl"
+          value: 
+        - name: KONG_STATUS_LISTEN
+          value:
         - name: KONG_ADMIN_GUI_LISTEN
-          value: "0.0.0.0:8002"
+          value: 
         - name: KONG_PROXY_ACCESS_LOG
-          value: "/dev/stdout"
+          value:
         - name: KONG_PROXY_ERROR_LOG
-          value: "/dev/stderr"
+          value:
         - name: KONG_PREFIX
-          value: "/var/run/kong"
+          value:
         - name: KONG_DECLARATIVE_CONFIG
-          value: "/opt/kong/kong.yaml"
+          value: 
         - name: KONG_LOG_LEVEL
-          value: "debug"
+          value: 
         - name: KONG_PLUGINSERVER_NAMES
-          value: "js"
+          value: 
         - name: KONG_PLUGINSERVER_JS_SOCKET
-          value: "/var/run/kong/js_pluginserver.sock"
+          value: 
         - name: KONG_PLUGINSERVER_JS_START_CMD
-          value: "/usr/local/bin/kong-js-pluginserver -v -p /var/run/kong --plugins-directory /usr/local/kong/js-plugins"
+          value: 
         - name: KONG_PLUGINSERVER_JS_QUERY_CMD
-          value: "/usr/local/bin/kong-js-pluginserver --plugins-directory /usr/local/kong/js-plugins --dump-all-plugins"
+          value: 
         - name: KONG_PLUGINS
-          value: "bundled,js-custom-auth"
-        # - name: KONG_DNS_RESOLVER
-        #   value: "<<your_dns_resolver>>"
+          value: 
         ports:
         - containerPort: 8000
         - containerPort: 8443
         - containerPort: 8001
         - containerPort: 8444
         - containerPort: 8002
+        - containerPort: 8100
         volumeMounts:
         - name: kong-prefix-vol
           mountPath: /var/run/kong
         - name: kong-tmp-vol
           mountPath: /tmp
-        # readinessProbe:
-        #   exec:
-        #     command: ["kong", "health"]
-        #   initialDelaySeconds: 10
-        #   periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: 8100
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /status/ready
+            port: 8100
+          initialDelaySeconds: 10
+          periodSeconds: 10
       volumes:
       - name: kong-prefix-vol
         persistentVolumeClaim:
@@ -138,5 +153,6 @@ apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
 metadata:
   name: kong
+  namespace: service
 spec:
   protocol: http
