@@ -1,0 +1,86 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: event-server
+  namespace: service
+  labels:
+    app: event-server
+  annotations:
+    ingress.kubernetes.io/service-upstream: "true"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 50051
+      targetPort: 50051
+      protocol: TCP
+  selector:
+    app: event-server
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: event-server
+  namespace: service
+automountServiceAccountToken: true
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: event-server
+  namespace: service
+spec:
+  protocol: grpc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-server
+  namespace: service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: event-server
+      app: event-server
+  template:
+    metadata:
+      labels:
+        service: event-server
+        app: event-server
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+        'consul.hashicorp.com/service-meta-version': 'v1'
+        consul.hashicorp.com/connect-service-upstreams: 'notification:8081,user:5000,rabbitmq:5672'
+    spec:
+      serviceAccountName: event-server
+      containers:
+        - name: event-server
+          image: supanuttangsin/event-server-svc:latest
+          imagePullPolicy: Always
+          env:
+          - name: MONGOURI
+            value: 
+          - name: GRPC_PORT
+            value: 
+          - name: HTTP_PORT
+            value: 
+          - name: USER_SERVICE_URL
+            value: 
+          - name: RABBITMQ_CONNECTION
+            value: 
+          ports:
+            - containerPort: 50051
+          # livenessProbe:
+          #   httpGet:
+          #     path: /health
+          #     port: 50051
+          #   initialDelaySeconds: 15
+          #   periodSeconds: 15
+          # readinessProbe:
+          #   httpGet:
+          #     path: /health
+          #     port: 50051
+          #   initialDelaySeconds: 10
+          #   periodSeconds: 10
+---

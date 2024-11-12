@@ -2,32 +2,32 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: club
+  name: user
   namespace: service
   labels:
-    app: club
+    app: user
   annotations:
     ingress.kubernetes.io/service-upstream: "true"
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 5000
+      targetPort: 5000
       protocol: TCP
   selector:
-    app: club
+    app: user
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: club
+  name: user
   namespace: service
 automountServiceAccountToken: true
 ---
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
 metadata:
-  name: club
+  name: user
   namespace: service
 spec:
   protocol: http
@@ -35,53 +35,61 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: club
+  name: user
   namespace: service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      service: club
-      app: club
+      service: user
+      app: user
   template:
     metadata:
       labels:
-        service: club
-        app: club
+        service: user
+        app: user
       annotations:
         'consul.hashicorp.com/connect-inject': 'true'
         'consul.hashicorp.com/service-meta-version': 'v1'
     spec:
-      serviceAccountName: club
+      serviceAccountName: user
       containers:
-        - name: club
-          image: supanuttangsin/club-svc:latest
+        - name: user
+          image: supanuttangsin/user-svc:latest
           imagePullPolicy: Always
           env:
-          - name: MONGO_URI
+          - name: NODE_ENV
+            value: 
+          - name: PORT
+            value: 
+          - name: DATABASE_URL
+            value: 
+          - name: GOOGLE_CLIENT_ID
+            value: 
+          - name: GOOGLE_CLIENT_SECRET
+            value: 
+          - name: GOOGLE_REDIRECT_URL
+            value: 
+          - name: GOOGLE_REDIRECT_URL_CLIENT
             value:
-          - name: MONGO_DATABASE
-            value: 
-          - name: CLUB_COLLECTION_NAME
-            value: 
-          - name: CLUB_MEMBERSHIP_COLLECTION_NAME
-            value: 
           - name: JWT_SECRET
             value: 
-          - name: FRONTENT_ROUTE
+          - name: NODE_TLS_REJECT_UNAUTHORIZED
+            value:
+          - name: CLIENT_URL
             value: 
           ports:
-          - containerPort: 8080
+            - containerPort: 5000
           livenessProbe:
             httpGet:
               path: /health/service
-              port: 8080
+              port: 5000
             initialDelaySeconds: 15
             periodSeconds: 15
           readinessProbe:
             httpGet:
               path: /health/database
-              port: 8080
+              port: 5000
             initialDelaySeconds: 10
             periodSeconds: 10
 ---

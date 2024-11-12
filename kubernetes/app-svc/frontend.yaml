@@ -1,0 +1,75 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: frontend
+  labels:
+    app: frontend
+  annotations:
+    ingress.kubernetes.io/service-upstream: "true"
+    consul.hashicorp.com/managed: "false"
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 4173
+      targetPort: 4173
+      protocol: TCP
+  selector:
+    app: frontend
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: frontend
+  namespace: frontend
+automountServiceAccountToken: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: frontend
+      app: frontend
+  template:
+    metadata:
+      labels:
+        service: frontend
+        app: frontend
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'false'
+    spec:
+      serviceAccountName: frontend
+      containers:
+        - name: frontend
+          image: supanuttangsin/frontend-svc:latest
+          imagePullPolicy: Always
+          env:
+            - name: REACT_APP_EVENT_ROUTE
+              value: 
+            - name: REACT_APP_CLUB_ROUTE
+              value: 
+            - name: GOOGLE_OAUTH_ROUTE
+              value: 
+            - name: GOOGLE_CLIENT_ID
+              value: 
+          ports:
+            - containerPort: 4173
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 4173
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 4173
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---

@@ -2,32 +2,32 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: club
+  name: event-client
   namespace: service
   labels:
-    app: club
+    app: event-client
   annotations:
     ingress.kubernetes.io/service-upstream: "true"
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 6001
+      targetPort: 6001
       protocol: TCP
   selector:
-    app: club
+    app: event-client
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: club
+  name: event-client
   namespace: service
 automountServiceAccountToken: true
 ---
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
 metadata:
-  name: club
+  name: event-client
   namespace: service
 spec:
   protocol: http
@@ -35,53 +35,50 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: club
+  name: event-client
   namespace: service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      service: club
-      app: club
+      service: event-client
+      app: event-client
   template:
     metadata:
       labels:
-        service: club
-        app: club
+        service: event-client
+        app: event-client
       annotations:
         'consul.hashicorp.com/connect-inject': 'true'
         'consul.hashicorp.com/service-meta-version': 'v1'
+        consul.hashicorp.com/connect-service-upstreams: 'event-server:50051'
     spec:
-      serviceAccountName: club
+      serviceAccountName: event-client
       containers:
-        - name: club
-          image: supanuttangsin/club-svc:latest
+        - name: event-client
+          image: supanuttangsin/event-client-svc:latest
           imagePullPolicy: Always
           env:
-          - name: MONGO_URI
-            value:
-          - name: MONGO_DATABASE
+          - name: GRPC_SERVER_PORT
             value: 
-          - name: CLUB_COLLECTION_NAME
-            value: 
-          - name: CLUB_MEMBERSHIP_COLLECTION_NAME
+          - name: HTTP_PORT
             value: 
           - name: JWT_SECRET
             value: 
-          - name: FRONTENT_ROUTE
+          - name: FRONTEND_ROUTE
             value: 
           ports:
-          - containerPort: 8080
+            - containerPort: 6001
           livenessProbe:
             httpGet:
-              path: /health/service
-              port: 8080
+              path: /health
+              port: 6001
             initialDelaySeconds: 15
             periodSeconds: 15
           readinessProbe:
             httpGet:
-              path: /health/database
-              port: 8080
+              path: /health
+              port: 6001
             initialDelaySeconds: 10
             periodSeconds: 10
 ---

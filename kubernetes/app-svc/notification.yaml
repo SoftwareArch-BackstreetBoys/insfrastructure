@@ -2,32 +2,32 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: club
+  name: notification
   namespace: service
   labels:
-    app: club
+    app: notification
   annotations:
     ingress.kubernetes.io/service-upstream: "true"
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 8081
+      targetPort: 8081
       protocol: TCP
   selector:
-    app: club
+    app: notification
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: club
+  name: notification
   namespace: service
 automountServiceAccountToken: true
 ---
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
 metadata:
-  name: club
+  name: notification
   namespace: service
 spec:
   protocol: http
@@ -35,53 +35,49 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: club
+  name: notification
   namespace: service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      service: club
-      app: club
+      service: notification
+      app: notification
   template:
     metadata:
       labels:
-        service: club
-        app: club
+        service: notification
+        app: notification
       annotations:
         'consul.hashicorp.com/connect-inject': 'true'
         'consul.hashicorp.com/service-meta-version': 'v1'
+        consul.hashicorp.com/connect-service-upstreams: 'rabbitmq:5672'
     spec:
-      serviceAccountName: club
+      serviceAccountName: notification
       containers:
-        - name: club
-          image: supanuttangsin/club-svc:latest
+        - name: notification
+          image: supanuttangsin/notification-svc:latest
           imagePullPolicy: Always
           env:
-          - name: MONGO_URI
+          - name: MONGOURI
+            value: 
+          - name: APP_PASSWORD
             value:
-          - name: MONGO_DATABASE
-            value: 
-          - name: CLUB_COLLECTION_NAME
-            value: 
-          - name: CLUB_MEMBERSHIP_COLLECTION_NAME
-            value: 
-          - name: JWT_SECRET
-            value: 
-          - name: FRONTENT_ROUTE
+          - name: RABBITMQ_CONNECTION
             value: 
           ports:
-          - containerPort: 8080
+          - containerPort: 8081
+          - containerPort: 8082
           livenessProbe:
             httpGet:
-              path: /health/service
-              port: 8080
+              path: /health
+              port: 8082
             initialDelaySeconds: 15
             periodSeconds: 15
           readinessProbe:
             httpGet:
-              path: /health/database
-              port: 8080
+              path: /health
+              port: 8082
             initialDelaySeconds: 10
             periodSeconds: 10
 ---

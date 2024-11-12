@@ -1,0 +1,79 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: service
+  labels:
+    app: rabbitmq
+  annotations:
+    ingress.kubernetes.io/service-upstream: "true"
+spec:
+  type: LoadBalancer
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+    - name: ui
+      port: 15672
+      targetPort: 15672
+  selector:
+    app: rabbitmq
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rabbitmq
+  namespace: service
+automountServiceAccountToken: true
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: rabbitmq
+  namespace: service
+spec:
+  protocol: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  namespace: service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: rabbitmq
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        service: rabbitmq
+        app: rabbitmq
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+        'consul.hashicorp.com/service-meta-version': 'v1'
+        consul.hashicorp.com/transparent-proxy: 'false'
+        consul.hashicorp.com/connect-service-upstreams: 'event-server:50051,notification:8081'
+    spec:
+      serviceAccountName: rabbitmq
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3-management
+          imagePullPolicy: Always
+          livenessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "ping"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+          ports:
+          - containerPort: 5672
+          - containerPort: 15672
+---
