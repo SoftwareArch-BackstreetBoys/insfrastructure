@@ -1,0 +1,47 @@
+global:
+  enabled: true
+  name: consul
+  image: "hashicorp/consul:1.19.2"
+  acls:
+    manageSystemACLs: true
+  tls:
+    enabled: true
+    enableAutoEncrypt: true
+    verify: true
+  enableNamespaces: true
+
+server:
+  enabled: true
+  replicas: 3
+  # bootstrapExpect: null
+  extraConfig: |
+    {
+      "log_level": "DEBUG"
+    }
+
+client:
+  enabled: true
+
+connectInject:
+  transparentProxy:
+    defaultEnabled: true
+  enabled: true
+  default: true 
+
+controller:
+  enabled: true
+  namespaces:
+    include: ["service"]
+
+syncCatalog:
+  k8sDenyNamespaces: ["frontend"]
+
+ui:
+  enabled: true
+  service:
+    enabled: true
+    type: LoadBalancer
+
+dns:
+  enabled: true
+  proxy: true
